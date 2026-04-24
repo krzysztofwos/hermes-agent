@@ -1174,6 +1174,8 @@ def setup_terminal_backend(config: dict):
 
     current_backend = config.get("terminal", {}).get("backend", "local")
     is_linux = _platform.system() == "Linux"
+    is_macos_arm = _platform.system() == "Darwin" and _platform.machine() == "arm64"
+    microsandbox_supported = is_linux or is_macos_arm
 
     # Build backend choices with descriptions
     terminal_choices = [
@@ -1191,6 +1193,14 @@ def setup_terminal_backend(config: dict):
         terminal_choices.append("Singularity/Apptainer - HPC-friendly container")
         idx_to_backend[next_idx] = "singularity"
         backend_to_idx["singularity"] = next_idx
+        next_idx += 1
+
+    if microsandbox_supported:
+        terminal_choices.append(
+            "Microsandbox - libkrun microVM (strong isolation, local)"
+        )
+        idx_to_backend[next_idx] = "microsandbox"
+        backend_to_idx["microsandbox"] = next_idx
         next_idx += 1
 
     # Add keep current option
@@ -1438,6 +1448,40 @@ def setup_terminal_backend(config: dict):
         image = prompt("  Sandbox image", current_image)
         config["terminal"]["daytona_image"] = image
         save_env_value("TERMINAL_DAYTONA_IMAGE", image)
+
+        _prompt_container_resources(config)
+
+    elif selected_backend == "microsandbox":
+        print_success("Terminal backend: Microsandbox")
+        print_info("Runs commands in a libkrun microVM with its own kernel.")
+        print_info("Stronger isolation than containers; no cloud dependency.")
+
+        # Check if msb is available
+        msb_bin = os.environ.get("MSB_PATH") or shutil.which("msb")
+        if not msb_bin or not os.access(msb_bin, os.X_OK):
+            print_warning("msb not found on PATH or at MSB_PATH!")
+            print_info("Install: curl -fsSL https://install.microsandbox.dev | sh")
+        else:
+            print_info(f"msb found: {msb_bin}")
+
+        # KVM check on Linux
+        if _platform.system() == "Linux":
+            if not os.access("/dev/kvm", os.R_OK | os.W_OK):
+                print_warning("/dev/kvm is not readable/writable by this user!")
+                print_info(
+                    "Add your user to the 'kvm' group (Linux), then log out/in: "
+                    "sudo usermod -aG kvm $USER"
+                )
+            else:
+                print_info("KVM access: ok")
+
+        # Microsandbox image (OCI)
+        current_image = config.get("terminal", {}).get(
+            "microsandbox_image", "nikolaik/python-nodejs:python3.11-nodejs20"
+        )
+        image = prompt("  Microsandbox image (OCI)", current_image)
+        config["terminal"]["microsandbox_image"] = image
+        save_env_value("TERMINAL_MICROSANDBOX_IMAGE", image)
 
         _prompt_container_resources(config)
 
