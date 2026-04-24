@@ -873,6 +873,7 @@ def _get_env_config() -> Dict[str, Any]:
         "singularity_image": os.getenv("TERMINAL_SINGULARITY_IMAGE", f"docker://{default_image}"),
         "modal_image": os.getenv("TERMINAL_MODAL_IMAGE", default_image),
         "daytona_image": os.getenv("TERMINAL_DAYTONA_IMAGE", default_image),
+        "microsandbox_image": os.getenv("TERMINAL_MICROSANDBOX_IMAGE", default_image),
         "cwd": cwd,
         "host_cwd": host_cwd,
         "docker_mount_cwd_to_workspace": mount_docker_cwd,
@@ -918,8 +919,8 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
     Create an execution environment for sandboxed command execution.
     
     Args:
-        env_type: One of "local", "docker", "singularity", "modal", "daytona", "ssh"
-        image: Docker/Singularity/Modal image name (ignored for local/ssh)
+        env_type: One of "local", "docker", "singularity", "modal", "daytona", "microsandbox", "ssh"
+        image: Docker/OCI/Singularity/Modal image name (ignored for local/ssh)
         cwd: Working directory
         timeout: Default command timeout
         ssh_config: SSH connection config (for env_type="ssh")
@@ -938,10 +939,13 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
     volumes = cc.get("docker_volumes", [])
     docker_forward_env = cc.get("docker_forward_env", [])
     docker_env = cc.get("docker_env", {})
+    microsandbox_volumes = cc.get("microsandbox_volumes", [])
+    microsandbox_forward_env = cc.get("microsandbox_forward_env", [])
+    microsandbox_env = cc.get("microsandbox_env", {})
 
     if env_type == "local":
         return _LocalEnvironment(cwd=cwd, timeout=timeout)
-    
+
     elif env_type == "docker":
         return _DockerEnvironment(
             image=image, cwd=cwd, timeout=timeout,
@@ -1020,6 +1024,18 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             image=image, cwd=cwd, timeout=timeout,
             cpu=int(cpu), memory=memory, disk=disk,
             persistent_filesystem=persistent, task_id=task_id,
+        )
+
+    elif env_type == "microsandbox":
+        # Lazy import so msb is only required when backend is selected.
+        from tools.environments.microsandbox import MicrosandboxEnvironment as _MicrosandboxEnvironment
+        return _MicrosandboxEnvironment(
+            image=image, cwd=cwd, timeout=timeout,
+            cpu=cpu, memory=memory, disk=disk,
+            persistent_filesystem=persistent, task_id=task_id,
+            volumes=microsandbox_volumes,
+            forward_env=microsandbox_forward_env,
+            env=microsandbox_env,
         )
 
     elif env_type == "ssh":
@@ -1462,6 +1478,8 @@ def terminal_tool(
             image = overrides.get("modal_image") or config["modal_image"]
         elif env_type == "daytona":
             image = overrides.get("daytona_image") or config["daytona_image"]
+        elif env_type == "microsandbox":
+            image = overrides.get("microsandbox_image") or config["microsandbox_image"]
         else:
             image = ""
 

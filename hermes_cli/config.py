@@ -437,6 +437,15 @@ DEFAULT_CONFIG = {
         "singularity_image": "docker://nikolaik/python-nodejs:python3.11-nodejs20",
         "modal_image": "nikolaik/python-nodejs:python3.11-nodejs20",
         "daytona_image": "nikolaik/python-nodejs:python3.11-nodejs20",
+        "microsandbox_image": "nikolaik/python-nodejs:python3.11-nodejs20",
+        "microsandbox_forward_env": [],
+        # Explicit env vars set inside the microsandbox VM. Same semantics as
+        # docker_env (values provided here, not read from the host process).
+        "microsandbox_env": {},
+        # Volume mounts shared with the microsandbox VM. Each entry is
+        # "source:guest_path" where source is either an absolute host path or
+        # a named msb volume.
+        "microsandbox_volumes": [],
         # Container resource limits (docker, singularity, modal, daytona — ignored for local/ssh)
         "container_cpu": 1,
         "container_memory": 5120,       # MB (default 5GB)
@@ -3886,6 +3895,7 @@ def set_config_value(key: str, value: str):
         "terminal.singularity_image": "TERMINAL_SINGULARITY_IMAGE",
         "terminal.modal_image": "TERMINAL_MODAL_IMAGE",
         "terminal.daytona_image": "TERMINAL_DAYTONA_IMAGE",
+        "terminal.microsandbox_image": "TERMINAL_MICROSANDBOX_IMAGE",
         "terminal.docker_mount_cwd_to_workspace": "TERMINAL_DOCKER_MOUNT_CWD_TO_WORKSPACE",
         "terminal.cwd": "TERMINAL_CWD",
         "terminal.timeout": "TERMINAL_TIMEOUT",

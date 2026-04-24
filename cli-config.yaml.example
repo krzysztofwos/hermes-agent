@@ -226,8 +226,32 @@ terminal:
 #   daytona_image: "nikolaik/python-nodejs:python3.11-nodejs20"
 #   container_disk: 10240          # Daytona max is 10GB per sandbox
 
+# -----------------------------------------------------------------------------
+# OPTION 7: Microsandbox libkrun microVMs (local)
+# Commands run in a libkrun microVM with its own kernel.
+# Great for: strong isolation from the agent's env and filesystem while keeping
+# everything local (no cloud dependency).
+# Requires: Linux with /dev/kvm (or macOS on Apple Silicon), `msb` on PATH or
+# MSB_PATH set. Install: curl -fsSL https://install.microsandbox.dev | sh
+# -----------------------------------------------------------------------------
+# terminal:
+#   backend: "microsandbox"
+#   cwd: "/root"                    # Path inside the VM
+#   timeout: 180
+#   lifetime_seconds: 300
+#   microsandbox_image: "python:3.12"  # Any OCI image usable by msb
+#   # Optional: explicitly forward selected env vars into the VM.
+#   # Values come from your current shell first, then ~/.hermes/.env.
+#   # Warning: anything forwarded here is visible to commands in the VM.
+#   # microsandbox_forward_env:
+#   #   - "GITHUB_TOKEN"
+#   # microsandbox_env:
+#   #   PYTHONUNBUFFERED: "1"
+#   # microsandbox_volumes:         # SOURCE:GUEST_PATH, host path or named volume
+#   #   - "/host/data:/mnt/data"
+
 #
-# --- Container resource limits (docker, singularity, modal, daytona -- ignored for local/ssh) ---
+# --- Container resource limits (docker, singularity, modal, daytona, microsandbox -- ignored for local/ssh) ---
 # These settings apply to all container backends. They control the resources
 # allocated to the sandbox and whether its filesystem persists across sessions.
   container_cpu: 1              # CPU cores
